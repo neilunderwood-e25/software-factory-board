@@ -1,0 +1,11 @@
+# Software Factory owner board
+
+This Next.js edition hosts one persistent, fixed Northstar glossary ticket. The original local board and its runtime data stay on the Mac.
+
+1. Apply schema.sql in the new Neon project. The migration can be rerun safely.
+2. In the Netlify project, set DATABASE_URL to this project's TLS-enabled pooled Neon connection string. Configure two independent, random keys of at least 32 characters as FACTORY_OWNER_KEY and FACTORY_WORKER_KEY. Keep all three secret, restricted to the production runtime. Never prefix them with NEXT_PUBLIC_ or commit them.
+3. Deploy the private repository on the free team. Open the production site and sign in using the owner key. Queue the fixed ticket with **Move to To Do** while the worker is stopped. Refresh to see that To Do persists.
+4. On the Air, set FACTORY_SITE to the exact production HTTPS Netlify origin and supply only FACTORY_WORKER_KEY through a private environment. Run python3 scripts/worker.py once. It makes outbound HTTPS requests and writes only the fixed glossary in ~/Documents/repos/northstar-hosted-demo. It accepts no ticket instructions, shell commands or attachments. It never launches Codex. The worker exits after one job.
+5. Refresh the board, verify Review, then sign out and verify that the ticket is no longer readable. A failed ticket can be retried. After a crash, a later worker run can reclaim the job when its three-minute lease expires. Stale workers cannot finish a reclaimed ticket. Repeated local runs preserve identical output and reject divergent existing work.
+
+The owner key grants access to the single-owner board. Login uses an eight-hour secure HTTP-only cookie. The separate worker key can only claim and finish the fixed job. The single PostgreSQL row contains both ticket and queue state; each transition is one conditional update. PostgreSQL serializes competing claims, and completion checks lease identity and expiry. There is no hosted worker or connection into the Mac.
