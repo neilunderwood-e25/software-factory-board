@@ -1,13 +1,12 @@
-import {keys,cookie,ownerSession,equal,db,listing,enqueue,claim,finish} from '../../../lib/hosted.mjs';
-export const dynamic='force-dynamic';
-export const runtime='nodejs';
+import {keys,cookie,ownerSession,equal,db,listing,enqueue,claim,finish} from '../../lib/hosted.mjs';
+
 const json=(body,status=200,headers={})=>Response.json(body,{status,headers:{'Cache-Control':'private, no-store',...headers}});
-export async function GET(req) {
+async function GET(req) {
   const k=keys();
   if(!k || !ownerSession(req,k.owner)) return json({error:'Owner sign-in required'},401);
   try{return json(await listing(db()));}catch{return json({error:'Database unavailable'},503);}
 }
-export async function POST(req) {
+async function POST(req) {
   const k=keys();
   if(!k) return json({error:'Server configuration required'},503);
   if(!req.headers.get('content-type')?.startsWith('application/json')) return json({error:'JSON required'},415);
@@ -34,4 +33,11 @@ export async function POST(req) {
     if(body.action==='enqueue' && Number.isSafeInteger(body.version)) return (await enqueue(sql,body.version)).length?json({ok:true}):json({},409);
     return json({},400);
   }catch{return json({error:'Database unavailable'},503);}
+}
+
+export const config={path:'/api/board'};
+export default function handler(req) {
+  if(req.method==='GET') return GET(req);
+  if(req.method==='POST') return POST(req);
+  return json({},405);
 }
